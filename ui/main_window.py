@@ -210,9 +210,25 @@ class WizardUI(QMainWindow):
         self.go_to_page(self.page_navigation)
 
     def navigation_selected(self, checked, nav_name, rb):
-        if not checked: return
+        if not checked:
+            return
         self.selected_navigation = nav_name
         self.go_to_page(self.page_summary)
+
+        # ✅ Reset paths
+        self.nifti_path = None
+        self.csv_path = None
+        self.lbl_nifti.setText("No file loaded")
+        self.lbl_csv.setText("No file loaded")
+        self.finish_btn.setEnabled(False)
+
+        # ✅ Show/Hide CSV import based on navigation method
+        if nav_name == "Moving Illustration":
+            self.btn_csv.show()
+            self.lbl_csv.show()
+        else:
+            self.btn_csv.hide()
+            self.lbl_csv.hide()
 
     def import_nifti(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select NIfTI file", "", "NIfTI Files (*.nii *.nii.gz)")
@@ -241,17 +257,37 @@ class WizardUI(QMainWindow):
             self._update_finish_btn()
 
     def _update_finish_btn(self):
-        self.finish_btn.setEnabled(bool(self.nifti_path and self.csv_path))
+        csv_required = (self.selected_navigation == "Moving Illustration")
+
+        if self.nifti_path and (self.csv_path or not csv_required):
+            self.finish_btn.setEnabled(True)
+        else:
+            self.finish_btn.setEnabled(False)
 
     # --------- 🧠 FINAL STEP: Run selected modules ---------
     def finish_and_run(self):
+        csv_required = (self.selected_navigation == "Moving Illustration")
+
+        if not self.nifti_path:
+            QMessageBox.warning(self, "Missing File", "Please select a NIfTI file first.")
+            return
+
+        if csv_required and not self.csv_path:
+            QMessageBox.warning(self, "Missing CSV", "This navigation method requires a CSV file.")
+            return
+
         viz_func = self._import_visualization()
         nav_func = self._import_navigation()
+
         if viz_func and nav_func:
             viz_func(self.nifti_path)
-            nav_func()
+            if csv_required:
+                nav_func(self.csv_path)
+            else:
+                nav_func()
         else:
             QMessageBox.warning(self, "Error", "Failed to load selected visualization/navigation module.")
+
 
     def _import_visualization(self):
         name = self.selected_visualization.lower().replace(" ", "_")
