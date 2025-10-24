@@ -1,7 +1,24 @@
-numpy>=1.20.0
-vtk>=9.0.0
 PyQt5>=5.15.0
-nibabel>=3.2.0
 pytest>=6.0.0
-pandas>=1.0.0
-pyvista
+
+
+# === Core GUI ===
+PySide6==6.7.2
+
+# === Data & Scientific ===
+numpy==1.26.4
+pandas==2.2.3
+
+# === Medical Imaging ===
+nibabel==5.2.1
+
+# === 3D Visualization (for Surface Rendering, etc.) ===
+pyvista==0.43.8
+vtk==9.3.1
+
+# === Optional but useful ===
+scipy==1.13.1
+matplotlib==3.9.2
+
+# === Development / Environment ===
+ipython==8.26.0
