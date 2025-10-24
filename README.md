@@ -1,18 +1,25 @@
-# 3D Medical Visualization Desktop App
+# 3D Viewer
 
-A Python desktop application for visualizing medical 3D data (NIfTI) using different visualization and navigation methods.
+A Python-based 3D visualization tool for medical imaging data.
 
-## 🔧 Features
+## Features
+- Surface rendering
+- Curved MPR visualization
+- Flythrough navigation
+- Support for NIFTI and CSV file formats
 
-- Choose anatomical system (Nervous, Cardiovascular, Musculoskeletal, Dental)
-- Enable only valid visualization/navigation options for each system
-- Import NIfTI (3D organ) and CSV (signals like ECG)
-- Display 3D visualization (surface, clipping, curved MPR)
-- Navigation methods (focus, movement illustration, fly-through)
-
-## 🧩 Requirements
-
-Install dependencies:
-
+## Installation
 ```bash
 pip install -r requirements.txt
+```
+
+## Usage
+```bash
+python main.py
+```
+
+## Project Structure
+- `io/`: File input/output operations
+- `navigation/`: Camera and viewpoint controls
+- `visualization/`: Rendering and display functions
+- `ui/`: User interface components
