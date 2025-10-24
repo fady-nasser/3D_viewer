@@ -75,6 +75,47 @@ class WizardUI(QMainWindow):
         self.nifti_path = None
         self.csv_path = None
 
+    # ---------------- BACK ----------------
+    def go_back(self):
+        """Handle Back button and clear previous selections."""
+        if not self.page_history:
+            return
+
+        current_page = self.stack.currentWidget()
+        prev_index = self.page_history.pop()
+
+        # 🧹 clear selections depending on which page you're going back from
+        if current_page == self.page_visualization:
+            self.selected_system = None
+            for btn in self.system_buttons.values():
+                btn.setProperty("selected", "false")
+                btn.style().unpolish(btn)
+                btn.style().polish(btn)
+
+        elif current_page == self.page_navigation:
+            self.selected_visualization = None
+            for rb in self.viz_radios.values():
+                rb.setAutoExclusive(False)
+                rb.setChecked(False)
+                rb.setAutoExclusive(True)
+
+        elif current_page == self.page_summary:
+            self.selected_navigation = None
+            for rb in self.nav_radios.values():
+                rb.setAutoExclusive(False)
+                rb.setChecked(False)
+                rb.setAutoExclusive(True)
+            self.nifti_path = None
+            self.csv_path = None
+            self.lbl_nifti.setText("No file loaded")
+            self.lbl_csv.setText("No file loaded")
+            self.finish_btn.setEnabled(False)
+
+        self.stack.setCurrentIndex(prev_index)
+
+        if not self.page_history:
+            self.back_button.hide()
+
     # ---------------- UI BUILD ----------------
 
     def _style(self):
@@ -280,14 +321,16 @@ class WizardUI(QMainWindow):
         nav_func = self._import_navigation()
 
         if viz_func and nav_func:
-            viz_func(self.nifti_path)
-            if csv_required:
-                nav_func(self.csv_path)
-            else:
+            # Visualization returns a plotter now
+            plotter = viz_func(self.nifti_path)
+
+            # Pass the plotter to navigation method if it supports it
+            try:
+                nav_func(plotter)
+            except TypeError:
                 nav_func()
         else:
             QMessageBox.warning(self, "Error", "Failed to load selected visualization/navigation module.")
-
 
     def _import_visualization(self):
         name = self.selected_visualization.lower().replace(" ", "_")
@@ -314,61 +357,11 @@ class WizardUI(QMainWindow):
         self.stack.setCurrentWidget(page)
         self.back_button.show()
 
-     # ---------------- BACK ----------------
-    def go_back(self):
-        """Handle Back button and clear previous selections."""
-        if not self.page_history:
-            return
-
-        current_page = self.stack.currentWidget()
-        prev_index = self.page_history.pop()
-
-        # 🧹 clear selections depending on which page you're going back from
-        if current_page == self.page_visualization:
-            # رجع من Visualization → System ⇒ امسح الـ System selection
-            self.selected_system = None
-            for btn in self.system_buttons.values():
-                btn.setProperty("selected", "false")
-                btn.style().unpolish(btn)
-                btn.style().polish(btn)
-
-        elif current_page == self.page_navigation:
-            # رجع من Navigation → Visualization ⇒ امسح الـ Visualization selection
-            self.selected_visualization = None
-            for rb in self.viz_radios.values():
-                rb.setAutoExclusive(False)
-                rb.setChecked(False)
-                rb.setAutoExclusive(True)
-
-        elif current_page == self.page_summary:
-            # رجع من Summary → Navigation ⇒ امسح الـ Navigation selection
-            self.selected_navigation = None
-            for rb in self.nav_radios.values():
-                rb.setAutoExclusive(False)
-                rb.setChecked(False)
-                rb.setAutoExclusive(True)
-            # كمان امسح الملفات اللي كان محمّلها
-            self.nifti_path = None
-            self.csv_path = None
-            self.lbl_nifti.setText("No file loaded")
-            self.lbl_csv.setText("No file loaded")
-            self.finish_btn.setEnabled(False)
-
-        # 👇 روح فعليًا للصفحة اللي قبلها
-        self.stack.setCurrentIndex(prev_index)
-
-        # اخفي الزرار لو رجع لأول صفحة
-        if not self.page_history:
-            self.back_button.hide()
-
-
-
 def run_app():
     app = QApplication(sys.argv)
     win = WizardUI()
     win.show()
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     run_app()
