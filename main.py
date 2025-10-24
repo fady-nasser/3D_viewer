@@ -2,7 +2,7 @@
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QRadioButton, QGroupBox, QStackedWidget,
-    QSizePolicy, QFileDialog
+    QSizePolicy, QFileDialog, QMessageBox
 )
 from PySide6.QtCore import Qt
 import sys
@@ -49,6 +49,7 @@ class WizardUI(QMainWindow):
         self.setWindowTitle("3D Medical Visualization Wizard")
         self.resize(900, 620)
 
+        # -------- STYLE --------
         self.setStyleSheet("""
             QMainWindow { background-color: #ffffff; }
             QLabel#title { font-size: 24px; font-weight: bold; color: #222; margin-bottom: 18px; }
@@ -66,6 +67,7 @@ class WizardUI(QMainWindow):
             QLabel#status_bad { color: #991b1b; font-weight: bold; }
         """)
 
+        # ---------- STACK ----------
         self.stack = QStackedWidget()
         self.page_system = self.create_system_page()
         self.page_visualization = self.create_visualization_page()
@@ -77,6 +79,7 @@ class WizardUI(QMainWindow):
         self.stack.addWidget(self.page_navigation)
         self.stack.addWidget(self.page_summary)
 
+        # layout with back button
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
         main_layout.setContentsMargins(18, 18, 18, 18)
@@ -93,6 +96,7 @@ class WizardUI(QMainWindow):
         self.setCentralWidget(main_widget)
         self.back_button.hide()
 
+        # selections
         self.selected_system = None
         self.selected_visualization = None
         self.selected_navigation = None
@@ -101,6 +105,7 @@ class WizardUI(QMainWindow):
         self.nifti_path = None
         self.csv_path = None
 
+    # ---------- PAGES ----------
     def create_system_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
@@ -124,12 +129,7 @@ class WizardUI(QMainWindow):
             btn.clicked.connect(lambda checked, n=name: self.select_system(n))
             self.system_buttons[name] = btn
             center_layout.addWidget(btn)
-
         layout.addWidget(center_container)
-        hint = QLabel("Choose the anatomical system you want to visualize")
-        hint.setObjectName("small")
-        hint.setAlignment(Qt.AlignCenter)
-        layout.addWidget(hint)
         return page
 
     def create_visualization_page(self):
@@ -149,7 +149,6 @@ class WizardUI(QMainWindow):
             self.viz_radios[name] = rb
             vbox.addWidget(rb)
         self.viz_group.setLayout(vbox)
-        self.viz_group.setFixedWidth(520)
         layout.addWidget(self.viz_group)
         return page
 
@@ -170,7 +169,6 @@ class WizardUI(QMainWindow):
             self.nav_radios[name] = rb
             nbox.addWidget(rb)
         self.nav_group.setLayout(nbox)
-        self.nav_group.setFixedWidth(520)
         layout.addWidget(self.nav_group)
         return page
 
@@ -186,7 +184,6 @@ class WizardUI(QMainWindow):
         files_layout = QHBoxLayout(files_widget)
         files_layout.setSpacing(30)
         files_layout.setAlignment(Qt.AlignCenter)
-        files_widget.setMaximumWidth(760)
 
         nifti_col = QVBoxLayout()
         nifti_btn = QPushButton("Import NIfTI (.nii / .nii.gz)")
@@ -210,15 +207,13 @@ class WizardUI(QMainWindow):
         files_layout.addLayout(csv_col)
         layout.addWidget(files_widget)
 
-
         self.finish_btn = QPushButton("Finish and Save Selection")
         self.finish_btn.clicked.connect(self.finish_and_save)
         self.finish_btn.setEnabled(False)
         layout.addWidget(self.finish_btn, alignment=Qt.AlignCenter)
-
         return page
 
-    # --- logic ---
+    # ---------- LOGIC ----------
     def select_system(self, system):
         self.selected_system = system
         for name, btn in self.system_buttons.items():
@@ -245,14 +240,14 @@ class WizardUI(QMainWindow):
             return
         self.selected_navigation = nav_name
         self.go_to_page(self.page_summary)
+        self.finish_btn.setEnabled(False)
         self.nifti_path = None
         self.csv_path = None
         self.nifti_status_label.setText("No file loaded")
         self.csv_status_label.setText("No file loaded")
-        self.finish_btn.setEnabled(False)
 
     def import_nifti(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select NIfTI file", "", "NIfTI Files (*.nii *.nii.gz);;All files (*.*)")
+        path, _ = QFileDialog.getOpenFileName(self, "Select NIfTI file", "", "NIfTI Files (*.nii *.nii.gz)")
         if not path:
             return
         ok, msg = self.validate_nifti(path)
@@ -264,7 +259,7 @@ class WizardUI(QMainWindow):
         self._update_finish_enabled()
 
     def import_csv(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select CSV file", "", "CSV Files (*.csv);;All files (*.*)")
+        path, _ = QFileDialog.getOpenFileName(self, "Select CSV file", "", "CSV Files (*.csv)")
         if not path:
             return
         ok, msg = self.validate_csv(path)
@@ -277,27 +272,12 @@ class WizardUI(QMainWindow):
 
     def validate_nifti(self, path):
         if path.lower().endswith((".nii", ".nii.gz")):
-            if HAVE_NIBABEL:
-                try:
-                    img = nib.load(path)
-                    data = img.get_fdata(dtype='float32')
-                    if data.ndim < 3:
-                        return False, "File is not 3D"
-                    return True, "Valid NIfTI"
-                except Exception as e:
-                    return False, str(e)
-            return True, "Valid by extension"
+            return True, "Valid NIfTI"
         return False, "Invalid extension"
 
     def validate_csv(self, path):
         if path.lower().endswith(".csv"):
-            if HAVE_PANDAS:
-                try:
-                    pd.read_csv(path, nrows=5)
-                    return True, "Valid CSV"
-                except Exception as e:
-                    return False, str(e)
-            return True, "Valid by extension"
+            return True, "Valid CSV"
         return False, "Invalid extension"
 
     def _update_finish_enabled(self):
@@ -311,9 +291,9 @@ class WizardUI(QMainWindow):
             f"📁 NIfTI: {self.nifti_path}\n"
             f"📊 CSV: {self.csv_path}"
         )
-        from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "Selection Complete", msg)
 
+    # ---------- BACK LOGIC ----------
     def go_to_page(self, page):
         current_index = self.stack.currentIndex()
         self.page_history.append(current_index)
@@ -323,7 +303,34 @@ class WizardUI(QMainWindow):
     def go_back(self):
         if not self.page_history:
             return
+
         prev_index = self.page_history.pop()
+
+        # reset selections depending on which page we're returning to
+        current_page = self.stack.currentWidget()
+
+        if current_page == self.page_visualization:
+            # clear system selection
+            self.selected_system = None
+            for btn in self.system_buttons.values():
+                btn.setProperty("selected", "false")
+                btn.style().unpolish(btn)
+                btn.style().polish(btn)
+        elif current_page == self.page_navigation:
+            # clear visualization
+            self.selected_visualization = None
+            for rb in self.viz_radios.values():
+                rb.setAutoExclusive(False)
+                rb.setChecked(False)
+                rb.setAutoExclusive(True)
+        elif current_page == self.page_summary:
+            # clear navigation
+            self.selected_navigation = None
+            for rb in self.nav_radios.values():
+                rb.setAutoExclusive(False)
+                rb.setChecked(False)
+                rb.setAutoExclusive(True)
+
         self.stack.setCurrentIndex(prev_index)
         if not self.page_history:
             self.back_button.hide()
